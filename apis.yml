@@ -1,0 +1,51 @@
+aid: calcom
+name: Cal.com
+description: "Open-source scheduling infrastructure with a public REST API for managing calendars, event types, bookings, teams, and availability, self-hostable or available as Cal.com Cloud."
+type: Index
+image: https://kinlane-productions2.s3.amazonaws.com/apis-json/apis-json-logo.jpg
+url: https://cal.com
+baseURL: https://api.cal.com/v2
+created: 2026-06-14
+modified: 2026-06-14
+specificationVersion: '0.19'
+tags:
+  - Scheduling
+  - Calendars
+  - Bookings
+  - Open Source
+  - Event Types
+apis:
+  - aid: calcom:rest-api-v2
+    name: Cal.com REST API v2
+    description: "REST API providing full programmatic control over Cal.com resources including calendars, event types, bookings, schedules, teams, and organizations. Supports OAuth and API key authentication with rate limits starting at 120 requests per minute."
+    tags:
+      - Scheduling
+      - Bookings
+      - Calendars
+      - Event Types
+      - Teams
+    humanURL: https://cal.com/docs/api-reference/v2/introduction
+    baseURL: https://api.cal.com/v2
+    properties:
+      - url: https://cal.com/docs/api-reference/v2/introduction
+        type: Documentation
+common:
+  - url: https://cal.com
+    type: Website
+  - url: https://cal.com/docs
+    type: Documentation
+  - url: https://www.linkedin.com/company/cal-com
+    type: LinkedIn
+  - url: https://github.com/calcom
+    type: GitHubOrganization
+  - url: https://cal.com/pricing
+    type: Pricing
+  - url: plans/calcom-plans.md
+    type: Plans
+  - url: rate-limits/calcom-rate-limits.md
+    type: RateLimits
+  - url: finops/calcom-finops.md
+    type: FinOps
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com
