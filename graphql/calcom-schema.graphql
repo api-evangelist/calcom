@@ -1,0 +1,585 @@
+# Cal.com GraphQL Schema
+# Derived from the canonical Prisma database schema:
+# https://github.com/calcom/cal.com/blob/main/packages/prisma/schema.prisma
+#
+# Cal.com does not expose a native GraphQL endpoint. Its public API is REST (v2)
+# and its internal layer uses tRPC. This SDL is a faithful translation of the
+# Prisma models into GraphQL types, preserving field names, types, nullability,
+# and enum values as defined in the authoritative source.
+
+scalar DateTime
+scalar JSON
+
+# ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum SchedulingType {
+  ROUND_ROBIN
+  COLLECTIVE
+  MANAGED
+}
+
+enum PeriodType {
+  UNLIMITED
+  ROLLING
+  ROLLING_WINDOW
+  RANGE
+}
+
+enum BookingStatus {
+  CANCELLED
+  ACCEPTED
+  REJECTED
+  PENDING
+  AWAITING_HOST
+}
+
+enum MembershipRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+enum UserPermissionRole {
+  USER
+  ADMIN
+}
+
+enum IdentityProvider {
+  CAL
+  GOOGLE
+  SAML
+  AZUREAD
+}
+
+enum PaymentOption {
+  ON_BOOKING
+  HOLD
+}
+
+enum WebhookTriggerEvents {
+  BOOKING_CREATED
+  BOOKING_PAYMENT_INITIATED
+  BOOKING_PAID
+  BOOKING_RESCHEDULED
+  BOOKING_REQUESTED
+  BOOKING_CANCELLED
+  BOOKING_REJECTED
+  BOOKING_NO_SHOW_UPDATED
+  FORM_SUBMITTED
+  MEETING_ENDED
+  MEETING_STARTED
+  RECORDING_READY
+  RECORDING_TRANSCRIPTION_GENERATED
+  OOO_CREATED
+  AFTER_HOSTS_CAL_VIDEO_NO_SHOW
+  AFTER_GUESTS_CAL_VIDEO_NO_SHOW
+  FORM_SUBMITTED_NO_EVENT
+  DELEGATION_CREDENTIAL_ERROR
+  WRONG_ASSIGNMENT_REPORT
+}
+
+enum EventTypeCustomInputType {
+  TEXT
+  TEXTLONG
+  NUMBER
+  BOOL
+  RADIO
+  PHONE
+}
+
+enum CreationSource {
+  API_V1
+  API_V2
+  WEBAPP
+}
+
+enum CancellationReasonRequirement {
+  MANDATORY_BOTH
+  MANDATORY_HOST_ONLY
+  MANDATORY_ATTENDEE_ONLY
+  OPTIONAL_BOTH
+}
+
+enum SMSLockState {
+  UNLOCKED
+  LOCKED
+}
+
+enum RRResetInterval {
+  MONTH
+}
+
+enum RRTimestampBasis {
+  CREATED_AT
+}
+
+enum TimeUnit {
+  DAY
+  HOUR
+  MINUTE
+}
+
+# ─── Core Types ──────────────────────────────────────────────────────────────
+
+"""
+A Cal.com user account. Users own event types, bookings, and schedules.
+"""
+type User {
+  id: Int!
+  uuid: String!
+  username: String
+  name: String
+  email: String!
+  emailVerified: DateTime
+  bio: String
+  avatarUrl: String
+  timeZone: String!
+  weekStart: String!
+  bufferTime: Int!
+  hideBranding: Boolean!
+  theme: String
+  appTheme: String
+  createdDate: DateTime!
+  trialEndsAt: DateTime
+  lastActiveAt: DateTime
+  completedOnboarding: Boolean!
+  locale: String
+  timeFormat: Int
+  twoFactorEnabled: Boolean!
+  identityProvider: IdentityProvider!
+  identityProviderId: String
+  allowDynamicBooking: Boolean
+  allowSEOIndexing: Boolean
+  receiveMonthlyDigestEmail: Boolean
+  requiresBookerEmailVerification: Boolean
+  metadata: JSON
+  verified: Boolean
+  role: UserPermissionRole!
+  defaultScheduleId: Int
+  organizationId: Int
+  brandColor: String
+  darkBrandColor: String
+  locked: Boolean!
+  isPlatformManaged: Boolean!
+  smsLockState: SMSLockState!
+  smsLockReviewedByAdmin: Boolean!
+  autoOptInFeatures: Boolean!
+  creationSource: CreationSource
+
+  # Relations
+  eventTypes: [EventType!]!
+  ownedEventTypes: [EventType!]!
+  bookings: [Booking!]!
+  schedules: [Schedule!]!
+  teams: [Membership!]!
+  availability: [Availability!]!
+  webhooks: [Webhook!]!
+  apiKeys: [ApiKey!]!
+}
+
+"""
+An event type defines a bookable slot configuration (e.g. "30-min intro call").
+"""
+type EventType {
+  id: Int!
+  title: String!
+  slug: String!
+  description: String
+  interfaceLanguage: String
+  position: Int!
+  locations: JSON
+  length: Int!
+  offsetStart: Int!
+  hidden: Boolean!
+  userId: Int
+  teamId: Int
+  profileId: Int
+  eventName: String
+  parentId: Int
+  bookingFields: JSON
+  timeZone: String
+  periodType: PeriodType!
+  periodStartDate: DateTime
+  periodEndDate: DateTime
+  periodDays: Int
+  periodCountCalendarDays: Boolean
+  lockTimeZoneToggleOnBookingPage: Boolean!
+  lockedTimeZone: String
+  requiresConfirmation: Boolean!
+  requiresConfirmationWillBlockSlot: Boolean!
+  requiresConfirmationForFreeEmail: Boolean!
+  requiresBookerEmailVerification: Boolean!
+  recurringEvent: JSON
+  disableGuests: Boolean!
+  hideCalendarNotes: Boolean!
+  hideCalendarEventDetails: Boolean!
+  minimumBookingNotice: Int!
+  beforeEventBuffer: Int!
+  afterEventBuffer: Int!
+  seatsPerTimeSlot: Int
+  onlyShowFirstAvailableSlot: Boolean!
+  schedulingType: SchedulingType
+  scheduleId: Int
+  price: Int!
+  currency: String!
+  slotInterval: Int
+  metadata: JSON
+  successRedirectUrl: String
+  forwardParamsSuccessRedirect: Boolean
+  bookingLimits: JSON
+  durationLimits: JSON
+  isInstantEvent: Boolean!
+  assignAllTeamMembers: Boolean!
+  isRRWeightsEnabled: Boolean!
+  hideOrganizerEmail: Boolean!
+  maxActiveBookingsPerBooker: Int
+  customReplyToEmail: String
+  rescheduleWithSameRoundRobinHost: Boolean!
+  useBookerTimezone: Boolean!
+  bookingRequiresAuthentication: Boolean!
+  requiresCancellationReason: CancellationReasonRequirement
+  disableCancelling: Boolean
+  disableRescheduling: Boolean
+  minimumRescheduleNotice: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+
+  # Relations
+  owner: User
+  team: Team
+  parent: EventType
+  children: [EventType!]!
+  bookings: [Booking!]!
+  availability: [Availability!]!
+  webhooks: [Webhook!]!
+  hosts: [Host!]!
+  schedule: Schedule
+  customInputs: [EventTypeCustomInput!]!
+}
+
+"""
+A booking represents a scheduled meeting between a host and one or more attendees.
+"""
+type Booking {
+  id: Int!
+  uid: String!
+  idempotencyKey: String
+  userId: Int
+  userPrimaryEmail: String
+  eventTypeId: Int
+  title: String!
+  description: String
+  customInputs: JSON
+  responses: JSON
+  startTime: DateTime!
+  endTime: DateTime!
+  location: String
+  createdAt: DateTime!
+  updatedAt: DateTime
+  status: BookingStatus!
+  paid: Boolean!
+  destinationCalendarId: Int
+  cancellationReason: String
+  rejectionReason: String
+  dynamicEventSlugRef: String
+  dynamicGroupSlugRef: String
+  rescheduled: Boolean
+  fromReschedule: String
+  recurringEventId: String
+  smsReminderNumber: String
+  scheduledJobs: [String!]!
+  metadataJson: JSON
+  isRecorded: Boolean!
+  iCalUID: String
+  iCalSequence: Int!
+  reassignReason: String
+  reassignById: Int
+  noShowHost: Boolean
+
+  # Relations
+  user: User
+  eventType: EventType
+  attendees: [Attendee!]!
+  references: [BookingReference!]!
+  payment: [Payment!]!
+}
+
+"""
+An attendee is a guest participant in a booking.
+"""
+type Attendee {
+  id: Int!
+  email: String!
+  name: String!
+  timeZone: String!
+  phoneNumber: String
+  locale: String
+  bookingId: Int
+  noShow: Boolean
+
+  # Relations
+  booking: Booking
+}
+
+"""
+A team or organization that groups users and event types.
+"""
+type Team {
+  id: Int!
+  name: String!
+  slug: String
+  logoUrl: String
+  calVideoLogo: String
+  appLogo: String
+  appIconLogo: String
+  bio: String
+  hideBranding: Boolean!
+  hideTeamProfileLink: Boolean!
+  isPrivate: Boolean!
+  hideBookATeamMember: Boolean!
+  createdAt: DateTime!
+  metadata: JSON
+  theme: String
+  brandColor: String
+  darkBrandColor: String
+  bannerUrl: String
+  parentId: Int
+  timeFormat: Int
+  timeZone: String!
+  weekStart: String!
+  isOrganization: Boolean!
+  pendingPayment: Boolean!
+  isPlatform: Boolean!
+  smsLockState: SMSLockState!
+  smsLockReviewedByAdmin: Boolean!
+  autoOptInFeatures: Boolean!
+
+  # Relations
+  members: [Membership!]!
+  eventTypes: [EventType!]!
+  parent: Team
+  children: [Team!]!
+  webhooks: [Webhook!]!
+  apiKeys: [ApiKey!]!
+}
+
+"""
+A membership links a user to a team with a specific role.
+"""
+type Membership {
+  id: Int!
+  teamId: Int!
+  userId: Int!
+  accepted: Boolean!
+  role: MembershipRole!
+  customRoleId: String
+  createdAt: DateTime
+  updatedAt: DateTime
+
+  # Relations
+  team: Team!
+  user: User!
+}
+
+"""
+A recurring schedule that defines when a user is generally available.
+"""
+type Schedule {
+  id: Int!
+  userId: Int!
+  name: String!
+  timeZone: String
+
+  # Relations
+  user: User!
+  availability: [Availability!]!
+  eventTypes: [EventType!]!
+}
+
+"""
+A single availability window within a schedule or event type.
+"""
+type Availability {
+  id: Int!
+  userId: Int
+  eventTypeId: Int
+  days: [Int!]!
+  startTime: DateTime!
+  endTime: DateTime!
+  date: DateTime
+  scheduleId: Int
+
+  # Relations
+  user: User
+  eventType: EventType
+  schedule: Schedule
+}
+
+"""
+A webhook subscription for receiving event notifications via HTTP POST.
+"""
+type Webhook {
+  id: String!
+  userId: Int
+  teamId: Int
+  eventTypeId: Int
+  subscriberUrl: String!
+  payloadTemplate: String
+  createdAt: DateTime!
+  active: Boolean!
+  eventTriggers: [WebhookTriggerEvents!]!
+  appId: String
+  secret: String
+  platform: Boolean!
+  time: Int
+  timeUnit: TimeUnit
+  version: String!
+
+  # Relations
+  user: User
+  team: Team
+  eventType: EventType
+}
+
+"""
+An API key used to authenticate requests to the Cal.com REST API.
+"""
+type ApiKey {
+  id: String!
+  userId: Int!
+  teamId: Int
+  note: String
+  createdAt: DateTime!
+  expiresAt: DateTime
+  lastUsedAt: DateTime
+  appId: String
+
+  # Relations
+  user: User
+  team: Team
+}
+
+"""
+A payment record tied to a booking (e.g. Stripe charge).
+"""
+type Payment {
+  id: Int!
+  uid: String!
+  appId: String
+  bookingId: Int!
+  amount: Int!
+  fee: Int!
+  currency: String!
+  success: Boolean!
+  refunded: Boolean!
+  data: JSON!
+  externalId: String!
+  paymentOption: PaymentOption
+
+  # Relations
+  booking: Booking
+}
+
+"""
+A reference linking a booking to an external calendar event or meeting.
+"""
+type BookingReference {
+  id: Int!
+  type: String!
+  uid: String!
+  meetingId: String
+  thirdPartyRecurringEventId: String
+  meetingPassword: String
+  meetingUrl: String
+  bookingId: Int
+  externalCalendarId: String
+  deleted: Boolean
+  credentialId: Int
+
+  # Relations
+  booking: Booking
+}
+
+"""
+A host relationship linking a user to an event type (used for round-robin and collective events).
+"""
+type Host {
+  userId: Int!
+  eventTypeId: Int!
+  isFixed: Boolean!
+  priority: Int
+  weight: Int
+  scheduleId: Int
+  groupId: String
+  createdAt: DateTime!
+
+  # Relations
+  user: User!
+  eventType: EventType!
+  schedule: Schedule
+}
+
+"""
+Custom input field definition on an event type.
+"""
+type EventTypeCustomInput {
+  id: Int!
+  eventTypeId: Int!
+  label: String!
+  type: EventTypeCustomInputType!
+  options: JSON
+  required: Boolean!
+  placeholder: String!
+
+  # Relations
+  eventType: EventType!
+}
+
+# ─── Query Root ───────────────────────────────────────────────────────────────
+
+type Query {
+  """Get a single user by ID."""
+  user(id: Int!): User
+
+  """Get a single event type by ID."""
+  eventType(id: Int!): EventType
+
+  """List event types, optionally filtered by owner or team."""
+  eventTypes(userId: Int, teamId: Int): [EventType!]!
+
+  """Get a single booking by ID or UID."""
+  booking(id: Int, uid: String): Booking
+
+  """List bookings, optionally filtered by user or status."""
+  bookings(userId: Int, status: BookingStatus): [Booking!]!
+
+  """Get a single team by ID."""
+  team(id: Int!): Team
+
+  """List teams."""
+  teams: [Team!]!
+
+  """Get a single schedule by ID."""
+  schedule(id: Int!): Schedule
+
+  """List schedules for a user."""
+  schedules(userId: Int!): [Schedule!]!
+
+  """List availability windows for a user or event type."""
+  availabilities(userId: Int, eventTypeId: Int, scheduleId: Int): [Availability!]!
+
+  """List webhooks for a user or team."""
+  webhooks(userId: Int, teamId: Int): [Webhook!]!
+
+  """List API keys for a user."""
+  apiKeys(userId: Int!): [ApiKey!]!
+
+  """Get a payment by ID."""
+  payment(id: Int!): Payment
+
+  """List payments for a booking."""
+  payments(bookingId: Int!): [Payment!]!
+
+  """List attendees for a booking."""
+  attendees(bookingId: Int!): [Attendee!]!
+}
