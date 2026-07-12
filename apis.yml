@@ -30,6 +30,12 @@ apis:
       - url: https://cal.com/docs/api-reference/v2/introduction
         type: Documentation
 common:
+  - type: TrustCenter
+    url: security/calcom-trust-center.yml
+  - type: VulnerabilityDisclosure
+    url: security/calcom-vulnerability-disclosure.yml
+  - type: DomainSecurity
+    url: security/calcom-domain-security.yml
   - url: https://cal.com
     type: Website
   - url: https://cal.com/docs
@@ -46,6 +52,8 @@ common:
     type: RateLimits
   - url: finops/calcom-finops.md
     type: FinOps
+  - url: https://cal.com/blog/category/all-categories
+    type: Blog
 maintainers:
   - FN: Kin Lane
     email: kin@apievangelist.com
